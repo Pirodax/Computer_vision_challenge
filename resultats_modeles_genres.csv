@@ -1,0 +1,10 @@
+feature_set,model,macro_f1,n_features
+avec_dimensions,extra_trees,0.5809710719555804,111
+avec_dimensions,logistic_regression,0.5533892536585864,111
+avec_dimensions,linear_svm,0.5468460454715194,111
+visuelles_enrichies,linear_svm,0.48634539578408714,107
+visuelles_enrichies,logistic_regression,0.4575942742134636,107
+visuelles_enrichies,extra_trees,0.44243545892061975,107
+base_visuelles,extra_trees,0.43593020368813934,16
+base_visuelles,linear_svm,0.4293993558391909,16
+base_visuelles,logistic_regression,0.42875282393294895,16

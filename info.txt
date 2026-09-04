@@ -1,0 +1,54 @@
+brightness_mean
+brightness_std
+saturation_mean
+saturation_std
+r_mean
+g_mean
+b_mean
+colorfulness
+color_entropy
+contrast
+dark_ratio
+bright_ratio
+edge_density
+texture_contrast
+texture_homogeneity
+texture_energy
+
+La standardisation est importante
+
+utiliser stratify=y lors du découpage train/test ;
+utiliser class_weight="balanced" ;
+mesurer le F1-score par classe et pas seulement l’accuracy ;
+afficher une matrice de confusion ;
+éventuellement augmenter les images de la classe blockbuster.
+
+Ajouter :
+
+histogramme HSV ;
+histogramme LAB ;
+statistiques par zone.
+Ajouter :
+
+HOG ;
+densité de contours par zone ;
+symétrie ;
+LBP.
+
+Couleur :
+HSV/LAB, saturation, colorfulness, histogrammes
+
+Luminosité :
+brightness_mean, dark_ratio, bright_ratio, contrast
+
+Texture :
+GLCM, LBP, texture_contrast, texture_homogeneity
+
+Forme :
+HOG, edge_density, densité de contours par zone
+
+Composition :
+statistiques dans différentes zones de l’affiche
+
+Modèle :
+SVM ou Extra Trees avec gestion du déséquilibre
