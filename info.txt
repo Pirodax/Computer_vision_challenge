@@ -52,3 +52,581 @@ statistiques dans différentes zones de l’affiche
 
 Modèle :
 SVM ou Extra Trees avec gestion du déséquilibre
+
+
+## Conclusion générale
+
+Les affiches peuvent être différenciées grâce à plusieurs familles de caractéristiques, 
+mais aucune caractéristique ne suffit seule. Le modèle doit apprendre des combinaisons de 
+signaux :
+
+```text
+couleur + luminosité + texture + contours + composition
+```
+
+Par exemple :
+
+```text
+affiche sombre
++ faible colorfulness
++ forte proportion de pixels sombres
++ texture homogène
+= probablement horreur
+```
+
+Ou :
+
+```text
+affiche claire
++ colorfulness élevée
++ saturation élevée
++ contours nombreux
+= probablement animation ou comédie
+```
+
+## 1. Différences observées entre les genres
+
+### Horreur
+
+Les affiches d’horreur sont généralement :
+
+- les plus sombres ;
+- moins colorées ;
+- caractérisées par une forte proportion de pixels sombres ;
+- moins lumineuses dans les quatre zones de l’affiche ;
+- associées à une luminosité LAB `L` plus faible.
+
+Valeurs observées :
+
+```text
+brightness_mean ≈ 95
+dark_ratio      ≈ 0.55
+colorfulness    ≈ 43
+```
+
+Le modèle peut donc utiliser la combinaison :
+
+```text
+brightness_mean faible
++ dark_ratio élevé
++ colorfulness faible
++ value_hist_0 élevé
+```
+
+### Blockbuster
+
+Les blockbusters sont également plutôt sombres, mais ils sont difficiles à distinguer des films d’horreur avec les seules couleurs.
+
+Valeurs observées :
+
+```text
+brightness_mean ≈ 112
+dark_ratio      ≈ 0.46
+colorfulness    ≈ 50
+```
+
+La classe `blockbuster` est aussi sous-représentée avec seulement `169` images. 
+Le modèle apprend donc moins bien cette catégorie.
+
+Pour mieux la distinguer, les caractéristiques les plus intéressantes sont :
+
+- la composition ;
+- les contours ;
+- les formes ;
+- la luminosité par zone ;
+- les histogrammes HOG ;
+- les caractéristiques de couleur LAB.
+
+### Animation
+
+Les affiches d’animation sont globalement :
+
+- lumineuses ;
+- colorées ;
+- relativement saturées ;
+- riches en contrastes et en contours.
+
+Valeurs observées :
+
+```text
+brightness_mean ≈ 157
+dark_ratio      ≈ 0.25
+colorfulness    ≈ 68
+```
+
+La combinaison suivante est intéressante :
+
+```text
+brightness_mean élevé
++ dark_ratio faible
++ colorfulness élevé
++ saturation élevée
+```
+
+### Comédie
+
+Les affiches de comédie sont également lumineuses, mais leur colorfulness moyenne est 
+légèrement inférieure à celle de l’animation.
+
+Valeurs observées :
+
+```text
+brightness_mean ≈ 159
+dark_ratio      ≈ 0.25
+colorfulness    ≈ 65
+```
+
+La différence entre animation et comédie est donc difficile à établir uniquement avec les 
+statistiques globales. Les informations de forme et de composition sont importantes.
+
+### Art et essai
+
+Les affiches d’art et essai sont souvent :
+
+- plus grandes ;
+- légèrement plus verticales ;
+- moins colorées que l’animation et la comédie ;
+- plus lumineuses que l’horreur ;
+- relativement homogènes selon les zones.
+
+Valeurs observées :
+
+```text
+brightness_mean ≈ 140
+dark_ratio      ≈ 0.31
+colorfulness    ≈ 54
+aspect_ratio    ≈ 0.73
+```
+
+Il faut être prudent avec `aspect_ratio`, car le modèle peut apprendre le format 
+de collecte plutôt que le genre réel.
+
+## 2. Importance des familles de caractéristiques
+
+### Couleur
+
+À utiliser :
+
+```text
+saturation_mean
+saturation_std
+r_mean
+g_mean
+b_mean
+colorfulness
+color_entropy
+lab_l_mean
+lab_a_mean
+lab_b_mean
+lab_l_std
+lab_a_std
+lab_b_std
+```
+
+Les résultats montrent que certaines caractéristiques LAB sont très intéressantes :
+
+```text
+lab_l_mean : F_score ≈ 234
+lab_b_std  : F_score ≈ 226
+lab_a_std  : F_score ≈ 94
+```
+
+Cela signifie que LAB apporte une information complémentaire à RGB et HSV.
+
+### Histogrammes
+
+Les histogrammes donnent une information plus détaillée qu’une simple moyenne.
+
+À utiliser :
+
+```text
+hue_hist_0 ... hue_hist_15
+saturation_hist_0 ... saturation_hist_15
+value_hist_0 ... value_hist_15
+```
+
+Par exemple, `value_hist_0` indique la proportion de pixels très sombres. Cette caractéristique a obtenu un score élevé dans ton analyse.
+
+Les histogrammes permettent de distinguer :
+
+- une image globalement sombre ;
+- une image contenant simultanément des zones très claires et très sombres ;
+- une image dominée par certaines couleurs ;
+- une image peu saturée ou très colorée.
+
+### Luminosité
+
+Les quatre caractéristiques les plus importantes sont :
+
+```text
+brightness_mean
+dark_ratio
+bright_ratio
+contrast
+```
+
+Elles permettent surtout de séparer :
+
+```text
+horreur
+```
+
+des genres plus lumineux :
+
+```text
+animation
+comédie
+art_et_essai
+```
+
+`brightness_mean` et `dark_ratio` sont particulièrement efficaces dans ton dataset.
+
+### Texture
+
+À utiliser :
+
+```text
+texture_contrast
+texture_homogeneity
+texture_energy
+lbp_hist_0 ... lbp_hist_9
+```
+
+La texture aide à différencier les affiches :
+
+- lisses ;
+- photographiques ;
+- très détaillées ;
+- contenant beaucoup de petits motifs ;
+- dominées par de grandes zones uniformes.
+
+Elle est moins discriminante que la luminosité dans tes résultats, mais elle apporte un signal complémentaire.
+
+### Forme et contours
+
+À utiliser :
+
+```text
+edge_density
+zone_0_0_edge_density
+zone_0_1_edge_density
+zone_1_0_edge_density
+zone_1_1_edge_density
+hog_0 ... hog_15
+symmetry_score
+```
+
+Les contours et HOG donnent des indications sur :
+
+- la quantité de détails ;
+- les silhouettes ;
+- l’organisation des formes ;
+- la complexité graphique ;
+- la symétrie de l’affiche.
+
+Dans tes résultats, `edge_density` est plus fiable que certains bins HOG. Les bins `hog_12`,
+ `hog_13` et `hog_14` sont constants et ont produit des valeurs ANOVA `NaN`. Il ne faut 
+ donc pas leur accorder d’importance.
+
+## 3. Composition spatiale
+
+La composition consiste à ne pas analyser l’affiche uniquement comme une moyenne globale. On la découpe en quatre zones :
+
+```text
++----------------+----------------+
+| haut-gauche    | haut-droite    |
++----------------+----------------+
+| bas-gauche     | bas-droite     |
++----------------+----------------+
+```
+
+Pour chaque zone, on calcule :
+
+```text
+brightness
+saturation
+colorfulness
+edge_density
+```
+
+Cela permet au modèle de différencier des affiches ayant la même moyenne globale mais une organisation différente.
+
+Par exemple :
+
+```text
+fond clair en haut + personnages sombres en bas
+```
+
+est différent de :
+
+```text
+personnage clair au centre + fond sombre partout ailleurs
+```
+
+Les caractéristiques par zone obtenues dans ton analyse sont très intéressantes. Par exemple :
+
+```text
+zone_0_1_brightness
+zone_1_1_brightness
+zone_0_0_brightness
+zone_1_0_brightness
+```
+
+ont des scores ANOVA élevés.
+
+## 4. Mise en place recommandée
+
+Le pipeline doit suivre cette organisation :
+
+```text
+image
+  |
+  v
+extraction des caractéristiques
+  |
+  v
+features_par_affiche.csv
+  |
+  v
+séparation train/test stratifiée
+  |
+  v
+standardisation
+  |
+  v
+modèle équilibré
+  |
+  v
+F1-score + matrice de confusion
+```
+
+Les fichiers déjà créés correspondent à cette organisation :
+
+- `analyse_caracteristiques_affiches.py`
+- `entrainer_modele_genres.py`
+- `features_par_affiche.csv`
+- `resultats_modeles_genres.csv`
+- `matrices_confusion_genres.png`
+
+## 5. Caractéristiques à donner au modèle
+
+Pour un modèle robuste, je recommande trois groupes de comparaison.
+
+### Modèle A : caractéristiques de base
+
+```python
+BASE_FEATURES = [
+    "brightness_mean",
+    "brightness_std",
+    "saturation_mean",
+    "saturation_std",
+    "r_mean",
+    "g_mean",
+    "b_mean",
+    "colorfulness",
+    "color_entropy",
+    "contrast",
+    "dark_ratio",
+    "bright_ratio",
+    "edge_density",
+    "texture_contrast",
+    "texture_homogeneity",
+    "texture_energy",
+]
+```
+
+### Modèle B : caractéristiques visuelles enrichies
+
+Ajouter :
+
+```text
+lab_l_mean
+lab_a_mean
+lab_b_mean
+lab_l_std
+lab_a_std
+lab_b_std
+```
+
+ainsi que :
+
+```text
+hue_hist_*
+saturation_hist_*
+value_hist_*
+zone_*
+hog_*
+lbp_hist_*
+symmetry_score
+```
+
+C’est le modèle à privilégier si tu veux éviter que le modèle apprenne le format de l’image.
+
+### Modèle C : avec dimensions
+
+Ajouter :
+
+```text
+orig_width
+orig_height
+aspect_ratio
+resolution_mp
+```
+
+Ce modèle a obtenu le meilleur score :
+
+```text
+Extra Trees + dimensions
+Accuracy : 0.65
+Macro-F1 : 0.58
+```
+
+Mais le gain vient probablement en partie du biais de format, car `aspect_ratio` est la caractéristique la plus discriminante :
+
+```text
+F_score ≈ 350
+```
+
+Il faut donc présenter ce modèle comme une comparaison, pas nécessairement comme le modèle final.
+
+## 6. Modèle conseillé
+
+Pour ton cas, le modèle final devrait être :
+
+```python
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC
+
+model = make_pipeline(
+    StandardScaler(),
+    LinearSVC(
+        class_weight="balanced",
+        max_iter=3000,
+        random_state=42
+    )
+)
+```
+
+Pourquoi le SVM linéaire ?
+
+- il fonctionne bien avec des caractéristiques numériques ;
+- il nécessite une standardisation ;
+- il supporte `class_weight="balanced"` ;
+- il est plus simple à interpréter ;
+- il évite parfois le surapprentissage d’Extra Trees sur des caractéristiques fortement corrélées.
+
+Dans tes résultats :
+
+```text
+SVM linéaire + features visuelles enrichies
+Accuracy : 0.53
+Macro-F1 : 0.49
+```
+
+Ce score est plus honnête que le score avec dimensions, car il repose sur des 
+caractéristiques visuelles plutôt que sur le format des fichiers.
+
+## 7. Évaluation correcte
+
+Il faut conserver :
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    stratify=y,
+    random_state=42
+)
+```
+
+Puis mesurer :
+
+```python
+from sklearn.metrics import classification_report, confusion_matrix
+
+predictions = model.predict(X_test)
+
+print(classification_report(
+    y_test,
+    predictions,
+    target_names=[
+        "animation",
+        "blockbuster",
+        "horreur",
+        "comédie",
+        "art_et_essai",
+    ],
+    zero_division=0,
+))
+
+print(confusion_matrix(y_test, predictions))
+```
+
+Il faut principalement regarder :
+
+- le `macro-F1` ;
+- le F1-score de `blockbuster` ;
+- les confusions entre `horreur` et `blockbuster` ;
+- les confusions entre `animation` et `comédie` ;
+- les confusions entre `comédie` et `art_et_essai`.
+
+L’accuracy seule est insuffisante, car `art_et_essai` possède beaucoup plus d’exemples 
+que `blockbuster`.
+
+## 8. Ce qu’il faudrait améliorer ensuite
+
+La principale faiblesse est le déséquilibre des classes :
+
+```text
+blockbuster   : 169
+art_et_essai  : 1160
+```
+
+Pour améliorer le modèle :
+
+1. conserver `class_weight="balanced"` ;
+2. utiliser `stratify=y` ;
+3. faire une validation croisée stratifiée ;
+4. augmenter uniquement la classe `blockbuster` si c’est autorisé ;
+5. supprimer les caractéristiques constantes ;
+6. tester plusieurs valeurs de régularisation du SVM ;
+7. ne pas utiliser les dimensions dans le modèle final ;
+8. comparer les résultats avec les mêmes partitions train/test.
+
+## Conclusion finale
+
+La stratégie la plus défendable est :
+
+```text
+1. Couleur :
+   HSV + LAB + histogrammes
+
+2. Luminosité :
+   brightness_mean + dark_ratio + bright_ratio + contrast
+
+3. Texture :
+   GLCM + LBP
+
+4. Forme :
+   edge_density + HOG + symétrie
+
+5. Composition :
+   mêmes mesures calculées dans quatre zones
+
+6. Préparation :
+   StandardScaler + train_test_split(stratify=y)
+
+7. Modèle :
+   SVM linéaire ou Extra Trees
+
+8. Évaluation :
+   macro-F1 + F1 par classe + matrice de confusion
+```
+
+Les résultats montrent que les genres les plus faciles à différencier sont probablement
+ `horreur` et les genres lumineux comme `animation` ou `comédie`. Les difficultés principales
+  concernent `blockbuster`, à cause du faible nombre d’exemples, et la distinction entre
+   `animation`, `comédie` et `art_et_essai`, qui nécessitera surtout les informations de
+    forme et de composition.
