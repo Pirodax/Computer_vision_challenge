@@ -43,8 +43,11 @@ import os
 import numpy as np
 import pandas as pd
 import cv2
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
+from PIL import Image
 from skimage.feature import graycomatrix, graycoprops, hog, local_binary_pattern
 from scipy.stats import f_oneway
 
@@ -52,7 +55,7 @@ from scipy.stats import f_oneway
 # CONFIGURATION
 # ----------------------------------------------------------------------------
 
-DATA_DIR = os.path.join("train", "train")  # dossier contenant toutes les .jpg
+DATA_DIR = "train"                  # dossier contenant toutes les .jpg
 LABELS_CSV = "train_labels.csv"           # CSV avec la correspondance fichier -> label
 CSV_FILENAME_COL = "filename"
 CSV_LABEL_COL = "label"
@@ -180,8 +183,12 @@ def add_shape_features(features, img_gray):
 
 
 def extract_features(image_path):
-    img_bgr = cv2.imread(image_path)
-    if img_bgr is None:
+    try:
+        with Image.open(image_path) as image:
+            image_rgb = image.convert("RGB")
+            image_rgb.load()
+        img_bgr = cv2.cvtColor(np.asarray(image_rgb), cv2.COLOR_RGB2BGR)
+    except (OSError, ValueError):
         return None
 
     orig_height, orig_width = img_bgr.shape[:2]
